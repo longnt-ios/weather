@@ -177,7 +177,7 @@ public class AdapterMylist extends RecyclerView.Adapter<AdapterMylist.MyViewHold
             switch (description) {
                 case "Showers":
                 case "Scattered Showers":
-                    mImageCloud.setImageResource(R.drawable.snow);
+                    mImageCloud.setImageResource(R.drawable.rain);
                     break;
                 case "Breezy":
                     mImageCloud.setImageResource(R.drawable.breezy);
@@ -280,7 +280,7 @@ public class AdapterMylist extends RecyclerView.Adapter<AdapterMylist.MyViewHold
         }
         if (getItemViewType(position) == LAYOUT_8) {
             TextView mTitle = (TextView) holder.itemView.findViewById(R.id.mTitle);
-            mTitle.setText("Wind & Pressure");
+            mTitle.setText("Wind");
         }
         if (getItemViewType(position) == LAYOUT_9) {
             TextView mSpeed = (TextView) holder.itemView.findViewById(R.id.mSpeed);
@@ -295,7 +295,7 @@ public class AdapterMylist extends RecyclerView.Adapter<AdapterMylist.MyViewHold
             }
             mAnimation.startAnimation(animation);
             String speed = wind.getSpeed();
-            mSpeed.setText(speed + " km/h SE");
+            mSpeed.setText(speed + " km/h");
         }
     }
 
