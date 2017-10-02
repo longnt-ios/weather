@@ -1,6 +1,7 @@
 package com.example.windows10timt.myweather.adapter;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 
 import android.graphics.Color;
@@ -25,6 +26,7 @@ import android.widget.TextView;
 
 import com.example.windows10timt.myweather.activity.MainActivity;
 import com.example.windows10timt.myweather.R;
+import com.example.windows10timt.myweather.activity.MapsActivity;
 import com.example.windows10timt.myweather.model.model.Location;
 import com.example.windows10timt.myweather.model.model.Astronomy;
 import com.example.windows10timt.myweather.model.model.Atmosphere;
@@ -277,6 +279,18 @@ public class AdapterMylist extends RecyclerView.Adapter<AdapterMylist.MyViewHold
             String urlMap = "https://maps.googleapis.com/maps/api/staticmap?center=" + item.getLat() + "," + item.getLon() + "&zoom=15&size=400x400&markers=color:red%7Clabel:C%7C" + item.getLat() + "," + item.getLon();
             ImageView imageMap = (ImageView) holder.itemView.findViewById(R.id.imageGoogleMap);
             Picasso.with(context).load(urlMap).into(imageMap);
+
+            imageMap.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    Intent intent = new Intent(context , MapsActivity.class);
+                    intent.putExtra("latitude1" , item.getLat().trim());
+                    intent.putExtra("longitude1" , item.getLon().trim());
+                    intent.putExtra("city1" , location2.getCity().trim());
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    context.startActivity(intent);
+                }
+            });
         }
         if (getItemViewType(position) == LAYOUT_8) {
             TextView mTitle = (TextView) holder.itemView.findViewById(R.id.mTitle);

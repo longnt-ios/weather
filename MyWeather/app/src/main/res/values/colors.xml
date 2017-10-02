@@ -9,5 +9,6 @@
     <color name="bg_menu">#8033b5e5</color>
     <color name="red">#d60813</color>
     <color name="gray_transparent">#80050505</color>
+    <color name="blue_transparent">#6e0b7276</color>
 
 </resources>

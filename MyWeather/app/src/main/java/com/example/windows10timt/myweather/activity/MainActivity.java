@@ -1,5 +1,6 @@
 package com.example.windows10timt.myweather.activity;
 
+import android.Manifest;
 import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -7,6 +8,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -15,6 +17,7 @@ import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.design.widget.NavigationView;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
@@ -79,7 +82,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private ArrayList<SQLProduct2> sqlProducts2;
     private String myCity;
 
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -97,7 +99,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 startActivityForResult(intent, 0);
             }
         });
-
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -179,11 +180,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                                             .create();
 
                                     dialog.show();
-
-
                                 }
-
-
                             }
                         }
 
@@ -192,129 +189,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                             Toast.makeText(MainActivity.this, "don't find location", Toast.LENGTH_SHORT).show();
                         }
                     });
-                } else {
-
-                    Location mLocation = getMylocation();
-                    if (mLocation != null) {
-
-                        mPdLoading = new ProgressDialog(MainActivity.this);
-                        mPdLoading.setMessage("Connecting");
-                        mPdLoading.setCanceledOnTouchOutside(false);
-                        mPdLoading.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-                        mPdLoading.onStart();
-                        mPdLoading.show();
-                        double latitude = mLocation.getLatitude();
-                        double longitude = mLocation.getLongitude();
-
-                        GithubClient client = RetrofitClient.getGithubService();
-
-                        Call<Example> call = client.getUser(latitude, longitude, 1, "be8d3e323de722ff78208a7dbb2dcd6f");
-                        call.enqueue(new Callback<Example>() {
-                            @Override
-                            public void onResponse(Call<Example> call, Response<Example> response) {
-                                if (response.isSuccessful()) {
-                                    mPdLoading.dismiss();
-                                    final String city = response.body().getCity().getName();
-                                    String country = response.body().getCity().getCountry();
-
-                                    UserService userService = RetrofitClientWeather.getGithubServiceWeather();
-                                    Call<Data> callData = userService.getTask("select * from weather.forecast where woeid in (select woeid from geo.places(5) where text=\" " + city + "," + country + "\")", "json");
-
-
-                                    callData.enqueue(new Callback<Data>() {
-                                        @Override
-                                        public void onResponse(Call<Data> call, Response<Data> response) {
-
-                                            results = response.body().getProduct().getResults();
-
-                                            if (results != null) {
-                                                results = response.body().getProduct().getResults();
-
-                                                item = results.getChannel().getItem();
-                                                product = item.getForecast();
-                                                conditions = item.getCondition();
-                                                String name = results.getChannel().getLocation().getCity();
-                                                mTextName.setText(name);
-                                                atmosphere = results.getChannel().getAtmosphere();
-                                                astronomy = results.getChannel().getAstronomy();
-                                                wind = results.getChannel().getWind();
-                                                location2 = results.getChannel().getLocation();
-                                                Log.d("main_activity", location2.getCity());
-                                                mList.setLayoutManager(new LinearLayoutManager(getApplicationContext()));
-                                                mList.setItemAnimator(new DefaultItemAnimator());
-                                                mList.setHasFixedSize(true);
-                                                adapterMylist = new AdapterMylist(conditions, atmosphere, astronomy, wind, product, getApplicationContext(), item, MainActivity.this, location2);
-                                                mList.setAdapter(adapterMylist);
-
-
-                                                String mTemp = conditions.getTemp();
-                                                String mDescription = conditions.getText();
-                                                SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-                                                SharedPreferences.Editor editor = preferences.edit();
-                                                editor.putString("city", name);
-                                                editor.putString("description", mDescription);
-                                                editor.putString("temp", mTemp);
-                                                abc = getIntent().getBooleanExtra("check", true);
-                                                editor.putBoolean("checkWidget", abc);
-                                                editor.apply();
-
-
-                                                sqlHelper2 = new SQLHelper2(getApplicationContext());
-
-                                                for (int i = 1; i < product.size(); i++) {
-                                                    String day = product.get(i).getDay();
-                                                    String date = product.get(i).getDate();
-                                                    String high = product.get(i).getHigh();
-                                                    String low = product.get(i).getLow();
-                                                    String description = product.get(i).getText();
-                                                    sqlHelper2.insertWeather2(day, date, description, high, low);
-                                                    sqlHelper2.updateWeather2(i, day, date, description, high, low);
-
-                                                }
-
-                                                sqlHelper = new SQLHelper(getApplicationContext());
-                                                sqlHelper.insertWeather(name, mTemp, wind.getSpeed(), atmosphere.getHumidity(), atmosphere.getPressure());
-                                                sqlHelper.updateWeather(1, name, mTemp, wind.getSpeed(), atmosphere.getHumidity(), atmosphere.getPressure());
-
-
-                                            }
-                                        }
-
-                                        @Override
-                                        public void onFailure(Call<Data> call, Throwable t) {
-//                                    mPdLoading.dismiss();
-                                            Log.d("erro", "onResponse: " + t.toString());
-                                        }
-                                    });
-
-                                } else {
-                                    Toast.makeText(MainActivity.this, "error", Toast.LENGTH_SHORT).show();
-                                }
-
-                            }
-
-                            @Override
-                            public void onFailure(Call<Example> call, Throwable t) {
-                                Log.d("error", "onFailure: " + t.toString());
-//                        mPdLoading.dismiss();
-                            }
-                        });
-                    } else {
-                        AlertDialog dialog = new AlertDialog.Builder(MainActivity.this)
-                                .setTitle("Hãy bật GPS hoặc tìm địa chỉ cụ thể !")
-                                .setNegativeButton("OK", new DialogInterface.OnClickListener() {
-                                    @Override
-                                    public void onClick(DialogInterface dialogInterface, int i) {
-                                    }
-                                })
-                                .create();
-
-                        dialog.show();
-
-                    }
-
                 }
-
             } else {
                 sqlHelper = new SQLHelper(getApplicationContext());
                 sqlHelper2 = new SQLHelper2(getApplicationContext());
@@ -359,6 +234,43 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         filter.addAction("android.net.conn.CONNECTIVITY_CHANGE");
         filter.addAction(MainActivity.CONNECTIVITY_SERVICE);
         registerReceiver(receiver, filter);
+        Intent intent2 = getIntent();
+        double latitude2 = intent2.getDoubleExtra("latitude", 0);
+        double longitude2 = intent2.getDoubleExtra("longitude", 0);
+        if (latitude2 != 0 && longitude2 != 0) {
+            mPdLoading = new ProgressDialog(MainActivity.this);
+            mPdLoading.setMessage("Connecting");
+            mPdLoading.setCanceledOnTouchOutside(false);
+            mPdLoading.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+            mPdLoading.onStart();
+            mPdLoading.show();
+            callApiWithLocation(latitude2, longitude2);
+        } else {
+            Location mLocation = getMylocation();
+            if (mLocation != null) {
+                mPdLoading = new ProgressDialog(MainActivity.this);
+                mPdLoading.setMessage("Connecting");
+                mPdLoading.setCanceledOnTouchOutside(false);
+                mPdLoading.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+                mPdLoading.onStart();
+                mPdLoading.show();
+                double latitude = mLocation.getLatitude();
+                double longitude = mLocation.getLongitude();
+                callApiWithLocation(latitude, longitude);
+
+            } else {
+                AlertDialog dialog = new AlertDialog.Builder(MainActivity.this)
+                        .setTitle("Hãy bật GPS hoặc tìm địa chỉ cụ thể !")
+                        .setNegativeButton("OK", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialogInterface, int i) {
+                            }
+                        })
+                        .create();
+
+                dialog.show();
+            }
+        }
         super.onResume();
     }
 
@@ -402,16 +314,21 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             LocationManager locationManager = (LocationManager)
                     getSystemService(Context.LOCATION_SERVICE);
 
-
-            try {
-                locationManager.requestLocationUpdates(
-                        LocationManager.GPS_PROVIDER, 1000, 10, (LocationListener) this);
-                Location mylocation = locationManager.getLastKnownLocation(provider);
-                return mylocation;
-            } catch (SecurityException e) {
-                e.printStackTrace();
+            locationManager.requestLocationUpdates(
+                    LocationManager.GPS_PROVIDER, 1000, 10, this);
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                // TODO: Consider calling
+                //    ActivityCompat#requestPermissions
+                // here to request the missing permissions, and then overriding
+                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                //                                          int[] grantResults)
+                // to handle the case where the user grants the permission. See the documentation
+                // for ActivityCompat#requestPermissions for more details.
                 return null;
             }
+            Location mylocation = locationManager.getLastKnownLocation(provider);
+            return mylocation;
+
         }
     }
 
@@ -440,7 +357,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         switch (resultCode) {
             case RESULT_OK:
                 myCity = data.getStringExtra("city");
-
                 break;
         }
     }
@@ -465,5 +381,99 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     }
 
+    public void callApiWithLocation(double latitude, double longitude) {
+        GithubClient client = RetrofitClient.getGithubService();
+        Call<Example> call = client.getUser(latitude, longitude, 1, "be8d3e323de722ff78208a7dbb2dcd6f");
+        call.enqueue(new Callback<Example>() {
+            @Override
+            public void onResponse(Call<Example> call, Response<Example> response) {
+                if (response.isSuccessful()) {
+                    mPdLoading.dismiss();
+                    final String city = response.body().getCity().getName();
+                    String country = response.body().getCity().getCountry();
+
+                    UserService userService = RetrofitClientWeather.getGithubServiceWeather();
+                    Call<Data> callData = userService.getTask("select * from weather.forecast where woeid in (select woeid from geo.places(5) where text=\" " + city + "," + country + "\")", "json");
+
+
+                    callData.enqueue(new Callback<Data>() {
+                        @Override
+                        public void onResponse(Call<Data> call, Response<Data> response) {
+
+                            results = response.body().getProduct().getResults();
+
+                            if (results != null) {
+                                results = response.body().getProduct().getResults();
+
+                                item = results.getChannel().getItem();
+                                product = item.getForecast();
+                                conditions = item.getCondition();
+                                String name = results.getChannel().getLocation().getCity();
+                                mTextName.setText(name);
+                                atmosphere = results.getChannel().getAtmosphere();
+                                astronomy = results.getChannel().getAstronomy();
+                                wind = results.getChannel().getWind();
+                                location2 = results.getChannel().getLocation();
+                                Log.d("main_activity", location2.getCity());
+                                mList.setLayoutManager(new LinearLayoutManager(getApplicationContext()));
+                                mList.setItemAnimator(new DefaultItemAnimator());
+                                mList.setHasFixedSize(true);
+                                adapterMylist = new AdapterMylist(conditions, atmosphere, astronomy, wind, product, getApplicationContext(), item, MainActivity.this, location2);
+                                mList.setAdapter(adapterMylist);
+
+
+                                String mTemp = conditions.getTemp();
+                                String mDescription = conditions.getText();
+                                SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+                                SharedPreferences.Editor editor = preferences.edit();
+                                editor.putString("city", name);
+                                editor.putString("description", mDescription);
+                                editor.putString("temp", mTemp);
+                                abc = getIntent().getBooleanExtra("check", true);
+                                editor.putBoolean("checkWidget", abc);
+                                editor.apply();
+
+
+                                sqlHelper2 = new SQLHelper2(getApplicationContext());
+
+                                for (int i = 1; i < product.size(); i++) {
+                                    String day = product.get(i).getDay();
+                                    String date = product.get(i).getDate();
+                                    String high = product.get(i).getHigh();
+                                    String low = product.get(i).getLow();
+                                    String description = product.get(i).getText();
+                                    sqlHelper2.insertWeather2(day, date, description, high, low);
+                                    sqlHelper2.updateWeather2(i, day, date, description, high, low);
+
+                                }
+
+                                sqlHelper = new SQLHelper(getApplicationContext());
+                                sqlHelper.insertWeather(name, mTemp, wind.getSpeed(), atmosphere.getHumidity(), atmosphere.getPressure());
+                                sqlHelper.updateWeather(1, name, mTemp, wind.getSpeed(), atmosphere.getHumidity(), atmosphere.getPressure());
+
+
+                            }
+                        }
+
+                        @Override
+                        public void onFailure(Call<Data> call, Throwable t) {
+//                                    mPdLoading.dismiss();
+                            Log.d("erro", "onResponse: " + t.toString());
+                        }
+                    });
+
+                } else {
+                    Toast.makeText(MainActivity.this, "error", Toast.LENGTH_SHORT).show();
+                }
+
+            }
+
+            @Override
+            public void onFailure(Call<Example> call, Throwable t) {
+                Log.d("error", "onFailure: " + t.toString());
+                mPdLoading.dismiss();
+            }
+        });
+    }
 }
 

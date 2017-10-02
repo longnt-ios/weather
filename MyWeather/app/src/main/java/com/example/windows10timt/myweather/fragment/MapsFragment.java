@@ -6,10 +6,10 @@ import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-
 import com.example.windows10timt.myweather.R;
 import com.example.windows10timt.myweather.model.model.Item;
 import com.example.windows10timt.myweather.model.model.Location;
@@ -17,19 +17,24 @@ import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapView;
+import com.google.android.gms.maps.MapsInitializer;
 import com.google.android.gms.maps.OnMapReadyCallback;
-import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 /**
  * Created by Windows 10 TIMT on 1/11/2017.
  */
 
-public class MapsFragment extends Fragment {
+public class MapsFragment extends Fragment implements  GoogleMap.OnCameraMoveStartedListener,
+        GoogleMap.OnCameraMoveListener,
+        GoogleMap.OnCameraMoveCanceledListener,
+        GoogleMap.OnMapClickListener  {
     public Item item;
     public Location location;
-    MapView mMapView;
+    private MapView mMapView;
+
 
     public static MapsFragment newInstance(Item item, Location location) {
         MapsFragment myFrag = new MapsFragment();
@@ -46,12 +51,17 @@ public class MapsFragment extends Fragment {
         mMapView = (MapView) view.findViewById(R.id.mMaps);
         mMapView.onCreate(savedInstanceState);
         mMapView.onResume();
+        try {
+            MapsInitializer.initialize(getActivity().getApplicationContext());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         mMapView.getMapAsync(new OnMapReadyCallback() {
             @Override
-            public void onMapReady(GoogleMap googleMap) {
+            public void onMapReady(final GoogleMap googleMap) {
                 double lat = Double.valueOf(item.getLat());
                 double lon = Double.valueOf(item.getLon());
-                LatLng here = new LatLng(lat, lon);
+                final LatLng here = new LatLng(lat, lon);
                 CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngZoom(here, 7);
                 googleMap.addMarker(new MarkerOptions().position(here).title(location.getCity()));
                 googleMap.moveCamera(cameraUpdate);
@@ -68,7 +78,15 @@ public class MapsFragment extends Fragment {
                     return;
                 }
                 googleMap.setMyLocationEnabled(true);
-
+                googleMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
+                    @Override
+                    public void onMapClick(LatLng latLng) {
+                        MarkerOptions marker = new MarkerOptions().position(
+                                new LatLng(latLng.latitude, latLng.longitude));
+                        googleMap.clear();
+                        googleMap.addMarker(marker);
+                    }
+                });
             }
         });
         return view;
@@ -100,5 +118,28 @@ public class MapsFragment extends Fragment {
         super.onLowMemory();
         if (mMapView != null)
             mMapView.onLowMemory();
+    }
+
+    @Override
+    public void onCameraMoveStarted(int reason) {
+        Log.d("onCameraMoveStarted", "onCameraMoveStarted: ");
+    }
+
+
+    @Override
+    public void onCameraMove() {
+        Log.d("onCameraMove", "onCameraMove: ");
+
+    }
+
+    @Override
+    public void onCameraMoveCanceled() {
+        Log.d("onCameraMoveCanceled", "onCameraMoveCanceled: ");
+    }
+
+
+    @Override
+    public void onMapClick(LatLng latLng) {
+
     }
 }
