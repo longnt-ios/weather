@@ -14,6 +14,7 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.design.widget.NavigationView;
@@ -53,6 +54,7 @@ import com.example.windows10timt.myweather.sqlite.SQLHelper;
 import com.example.windows10timt.myweather.sqlite.SQLHelper2;
 import com.example.windows10timt.myweather.sqlite.SQLProduct;
 import com.example.windows10timt.myweather.sqlite.SQLProduct2;
+import com.example.windows10timt.myweather.util.Constant;
 
 import java.util.ArrayList;
 
@@ -111,6 +113,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
+        checkPermisstion();
     }
 
     private BroadcastReceiver receiver = new BroadcastReceiver() {
@@ -230,10 +233,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     @Override
     protected void onResume() {
+        super.onResume();
         IntentFilter filter = new IntentFilter();
         filter.addAction("android.net.conn.CONNECTIVITY_CHANGE");
         filter.addAction(MainActivity.CONNECTIVITY_SERVICE);
-        registerReceiver(receiver, filter);
+        this.registerReceiver(receiver, filter);
         Intent intent2 = getIntent();
         double latitude2 = intent2.getDoubleExtra("latitude", 0);
         double longitude2 = intent2.getDoubleExtra("longitude", 0);
@@ -271,7 +275,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 dialog.show();
             }
         }
-        super.onResume();
     }
 
     @Override
@@ -281,6 +284,43 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             drawer.closeDrawer(GravityCompat.START);
         } else {
             super.onBackPressed();
+        }
+    }
+
+    private Location getMylocation() {
+        String provider = getEnabledLocationProvider(getApplicationContext());
+        if (provider == null) return null;
+        else {
+            LocationManager locationManager = (LocationManager)
+                  getSystemService(Context.LOCATION_SERVICE);
+            try {
+                locationManager.requestLocationUpdates(
+                        LocationManager.GPS_PROVIDER, 1000, 10, new LocationListener() {
+                            @Override
+                            public void onLocationChanged(Location location) {
+
+                            }
+
+                            @Override
+                            public void onStatusChanged(String s, int i, Bundle bundle) {
+
+                            }
+
+                            @Override
+                            public void onProviderEnabled(String s) {
+
+                            }
+
+                            @Override
+                            public void onProviderDisabled(String s) {
+
+                            }
+                        });
+                return locationManager.getLastKnownLocation(provider);
+            } catch (SecurityException e) {
+//                e.printStackTrace();
+                return null;
+            }
         }
     }
 
@@ -305,31 +345,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             bestProvide = LocationManager.GPS_PROVIDER;
         }
         return bestProvide;
-    }
-
-    private Location getMylocation() {
-        String provider = getEnabledLocationProvider(getBaseContext());
-        if (provider == null) return null;
-        else {
-            LocationManager locationManager = (LocationManager)
-                    getSystemService(Context.LOCATION_SERVICE);
-
-            locationManager.requestLocationUpdates(
-                    LocationManager.GPS_PROVIDER, 1000, 10, this);
-            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                // TODO: Consider calling
-                //    ActivityCompat#requestPermissions
-                // here to request the missing permissions, and then overriding
-                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                //                                          int[] grantResults)
-                // to handle the case where the user grants the permission. See the documentation
-                // for ActivityCompat#requestPermissions for more details.
-                return null;
-            }
-            Location mylocation = locationManager.getLastKnownLocation(provider);
-            return mylocation;
-
-        }
     }
 
     @SuppressWarnings("StatementWithEmptyBody")
@@ -359,6 +374,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 myCity = data.getStringExtra("city");
                 break;
         }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        this.unregisterReceiver(receiver);
     }
 
     @Override
@@ -457,7 +478,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
                         @Override
                         public void onFailure(Call<Data> call, Throwable t) {
-//                                    mPdLoading.dismiss();
+                                    mPdLoading.dismiss();
                             Log.d("erro", "onResponse: " + t.toString());
                         }
                     });
@@ -474,6 +495,23 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 mPdLoading.dismiss();
             }
         });
+    }
+    private boolean checkPermisstion() {
+        boolean iPer = true;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
+                    != PackageManager.PERMISSION_GRANTED) {
+                iPer = false;
+            }
+            if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)
+                    != PackageManager.PERMISSION_GRANTED) {
+                iPer = false;
+            }
+            if (!iPer)
+                requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION},
+                        Constant.REQUEST_PERMISSTION_WRITE_STORAGE);
+        }
+        return iPer;
     }
 }
 
