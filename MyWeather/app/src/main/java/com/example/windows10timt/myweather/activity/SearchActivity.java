@@ -1,6 +1,7 @@
 package com.example.windows10timt.myweather.activity;
 
 import android.content.Intent;
+import android.graphics.Color;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
@@ -11,6 +12,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.windows10timt.myweather.R;
@@ -47,13 +49,24 @@ public class SearchActivity extends AppCompatActivity {
         setContentView(R.layout.activity_search);
 
         mSearch = (SearchView) findViewById(R.id.mSearch);
-
         btnSearch = (Button) findViewById(R.id.btnSearch);
         back = (ImageView) findViewById(R.id.back);
+
+        EditText searchEditText = (EditText) mSearch.findViewById(android.support.v7.appcompat.R.id.search_src_text);
+        searchEditText.setTextColor(getResources().getColor(R.color.white));
+        searchEditText.setHintTextColor(getResources().getColor(R.color.white));
 
         mListSearchRespone = (RecyclerView) findViewById(R.id.mListSearch);
         mListSearchRespone.setHasFixedSize(true);
 
+        mSearch.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+               if (mSearch.isIconified()){
+                   mSearch.setIconified(false);
+               }
+            }
+        });
         
         mSearch.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override

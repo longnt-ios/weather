@@ -192,6 +192,31 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                             Toast.makeText(MainActivity.this, "don't find location", Toast.LENGTH_SHORT).show();
                         }
                     });
+                }else {
+                    Location mLocation = getMylocation();
+                    if (mLocation != null) {
+                        mPdLoading = new ProgressDialog(MainActivity.this);
+                        mPdLoading.setMessage("Connecting");
+                        mPdLoading.setCanceledOnTouchOutside(false);
+                        mPdLoading.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+                        mPdLoading.onStart();
+                        mPdLoading.show();
+                        double latitude = mLocation.getLatitude();
+                        double longitude = mLocation.getLongitude();
+                        callApiWithLocation(latitude, longitude);
+                    }
+//                    else {
+//                        AlertDialog dialog = new AlertDialog.Builder(MainActivity.this)
+//                                .setTitle("Hãy bật GPS hoặc tìm địa chỉ cụ thể !")
+//                                .setNegativeButton("OK", new DialogInterface.OnClickListener() {
+//                                    @Override
+//                                    public void onClick(DialogInterface dialogInterface, int i) {
+//                                    }
+//                                })
+//                                .create();
+//
+//                        dialog.show();
+//                    }
                 }
             } else {
                 sqlHelper = new SQLHelper(getApplicationContext());
@@ -243,37 +268,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         double longitude2 = intent2.getDoubleExtra("longitude", 0);
         if (latitude2 != 0 && longitude2 != 0) {
             mPdLoading = new ProgressDialog(MainActivity.this);
-            mPdLoading.setMessage("Connecting");
-            mPdLoading.setCanceledOnTouchOutside(false);
-            mPdLoading.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-            mPdLoading.onStart();
-            mPdLoading.show();
+//            mPdLoading.setMessage("Connecting");
+//            mPdLoading.setCanceledOnTouchOutside(false);
+//            mPdLoading.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+//            mPdLoading.onStart();
+//            mPdLoading.show();
             callApiWithLocation(latitude2, longitude2);
-        } else {
-            Location mLocation = getMylocation();
-            if (mLocation != null) {
-                mPdLoading = new ProgressDialog(MainActivity.this);
-                mPdLoading.setMessage("Connecting");
-                mPdLoading.setCanceledOnTouchOutside(false);
-                mPdLoading.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-                mPdLoading.onStart();
-                mPdLoading.show();
-                double latitude = mLocation.getLatitude();
-                double longitude = mLocation.getLongitude();
-                callApiWithLocation(latitude, longitude);
-
-            } else {
-                AlertDialog dialog = new AlertDialog.Builder(MainActivity.this)
-                        .setTitle("Hãy bật GPS hoặc tìm địa chỉ cụ thể !")
-                        .setNegativeButton("OK", new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialogInterface, int i) {
-                            }
-                        })
-                        .create();
-
-                dialog.show();
-            }
         }
     }
 
