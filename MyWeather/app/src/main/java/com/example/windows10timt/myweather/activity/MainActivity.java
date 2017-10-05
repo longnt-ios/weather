@@ -83,6 +83,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private ArrayList<SQLProduct> sqlProducts;
     private ArrayList<SQLProduct2> sqlProducts2;
     private String myCity;
+    private double latOnMaps;
+    private double lonOnMaps;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -114,6 +116,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
         checkPermisstion();
+
     }
 
     private BroadcastReceiver receiver = new BroadcastReceiver() {
@@ -122,77 +125,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
             NetworkInfo networkInfo = cm.getActiveNetworkInfo();
             if (networkInfo != null) {
-                final String mCountry = "";
                 if (myCity != null && !myCity.isEmpty()) {
-                    UserService userService = RetrofitClientWeather.getGithubServiceWeather();
-                    Call<Data> callData = userService.getTask("select * from weather.forecast where woeid in (select woeid from geo.places(1) where text=\" " + myCity + "," + mCountry + "\")", "json");
-                    callData.enqueue(new Callback<Data>() {
-                        @Override
-                        public void onResponse(Call<Data> call, Response<Data> response) {
-                            if (response.isSuccessful()) {
-
-                                results = response.body().getProduct().getResults();
-                                if (results != null) {
-
-                                    product = response.body().getProduct().getResults().getChannel().getItem().getForecast();
-                                    conditions = response.body().getProduct().getResults().getChannel().getItem().getCondition();
-                                    String name = response.body().getProduct().getResults().getChannel().getLocation().getCity();
-                                    mTextName.setText(name);
-                                    atmosphere = response.body().getProduct().getResults().getChannel().getAtmosphere();
-                                    astronomy = response.body().getProduct().getResults().getChannel().getAstronomy();
-                                    wind = response.body().getProduct().getResults().getChannel().getWind();
-                                    item = response.body().getProduct().getResults().getChannel().getItem();
-                                    location2 = response.body().getProduct().getResults().getChannel().getLocation();
-                                    boolean abc = getIntent().getBooleanExtra("check", true);
-
-                                    mList.setHasFixedSize(true);
-                                    adapterMylist = new AdapterMylist(conditions, atmosphere, astronomy, wind, product, getApplicationContext(), item, MainActivity.this, location2);
-                                    LinearLayoutManager manager = new LinearLayoutManager(getApplicationContext());
-                                    manager.setOrientation(LinearLayoutManager.VERTICAL);
-
-                                    mList.setLayoutManager(manager);
-                                    mList.setItemAnimator(new DefaultItemAnimator());
-                                    mList.setAdapter(adapterMylist);
-                                    String mTemp = conditions.getTemp();
-                                    sqlHelper2 = new SQLHelper2(getApplicationContext());
-
-                                    for (int i = 1; i < product.size(); i++) {
-                                        String day = product.get(i).getDay();
-                                        String date = product.get(i).getDate();
-                                        String high = product.get(i).getHigh();
-                                        String low = product.get(i).getLow();
-                                        String description = product.get(i).getText();
-                                        sqlHelper2.insertWeather2(day, date, description, high, low);
-                                        sqlHelper2.updateWeather2(i, day, date, description, high, low);
-                                    }
-
-                                    sqlHelper = new SQLHelper(getApplicationContext());
-                                    sqlHelper.insertWeather(name, mTemp, wind.getSpeed(), atmosphere.getHumidity(), atmosphere.getPressure());
-                                    sqlHelper.updateWeather(1, name, mTemp, wind.getSpeed(), atmosphere.getHumidity(), atmosphere.getPressure());
-
-
-                                    adapterMylist.notifyDataSetChanged();
-                                } else {
-                                    AlertDialog dialog = new AlertDialog.Builder(MainActivity.this)
-                                            .setTitle("Không tìm thấy địa chỉ !")
-                                            .setNegativeButton("OK", new DialogInterface.OnClickListener() {
-                                                @Override
-                                                public void onClick(DialogInterface dialogInterface, int i) {
-                                                }
-                                            })
-                                            .create();
-
-                                    dialog.show();
-                                }
-                            }
-                        }
-
-                        @Override
-                        public void onFailure(Call<Data> call, Throwable t) {
-                            Toast.makeText(MainActivity.this, "don't find location", Toast.LENGTH_SHORT).show();
-                        }
-                    });
-                }else {
+                    callApiwithCity(myCity, "");
+                } else if (latOnMaps != 0 && lonOnMaps != 0) {
+                    callApiWithLocation(latOnMaps, lonOnMaps);
+                } else {
                     Location mLocation = getMylocation();
                     if (mLocation != null) {
                         mPdLoading = new ProgressDialog(MainActivity.this);
@@ -204,19 +141,18 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                         double latitude = mLocation.getLatitude();
                         double longitude = mLocation.getLongitude();
                         callApiWithLocation(latitude, longitude);
+                    } else {
+                        AlertDialog dialog = new AlertDialog.Builder(MainActivity.this)
+                                .setTitle("Hãy bật GPS hoặc tìm địa chỉ cụ thể !")
+                                .setNegativeButton("OK", new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialogInterface, int i) {
+                                    }
+                                })
+                                .create();
+
+                        dialog.show();
                     }
-//                    else {
-//                        AlertDialog dialog = new AlertDialog.Builder(MainActivity.this)
-//                                .setTitle("Hãy bật GPS hoặc tìm địa chỉ cụ thể !")
-//                                .setNegativeButton("OK", new DialogInterface.OnClickListener() {
-//                                    @Override
-//                                    public void onClick(DialogInterface dialogInterface, int i) {
-//                                    }
-//                                })
-//                                .create();
-//
-//                        dialog.show();
-//                    }
                 }
             } else {
                 sqlHelper = new SQLHelper(getApplicationContext());
@@ -263,18 +199,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         filter.addAction("android.net.conn.CONNECTIVITY_CHANGE");
         filter.addAction(MainActivity.CONNECTIVITY_SERVICE);
         this.registerReceiver(receiver, filter);
-        Intent intent2 = getIntent();
-        double latitude2 = intent2.getDoubleExtra("latitude", 0);
-        double longitude2 = intent2.getDoubleExtra("longitude", 0);
-        if (latitude2 != 0 && longitude2 != 0) {
-            mPdLoading = new ProgressDialog(MainActivity.this);
-//            mPdLoading.setMessage("Connecting");
-//            mPdLoading.setCanceledOnTouchOutside(false);
-//            mPdLoading.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-//            mPdLoading.onStart();
-//            mPdLoading.show();
-            callApiWithLocation(latitude2, longitude2);
-        }
     }
 
     @Override
@@ -292,7 +216,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         if (provider == null) return null;
         else {
             LocationManager locationManager = (LocationManager)
-                  getSystemService(Context.LOCATION_SERVICE);
+                    getSystemService(Context.LOCATION_SERVICE);
             try {
                 locationManager.requestLocationUpdates(
                         LocationManager.GPS_PROVIDER, 1000, 10, new LocationListener() {
@@ -373,6 +297,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             case RESULT_OK:
                 myCity = data.getStringExtra("city");
                 break;
+            case RESULT_CANCELED:
+                latOnMaps = data.getDoubleExtra("latitude", 0);
+                lonOnMaps = data.getDoubleExtra("longitude", 0);
+                break;
         }
     }
 
@@ -380,6 +308,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     protected void onPause() {
         super.onPause();
         this.unregisterReceiver(receiver);
+        myCity = "";
+        latOnMaps = 0;
+        lonOnMaps = 0;
     }
 
     @Override
@@ -478,7 +409,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
                         @Override
                         public void onFailure(Call<Data> call, Throwable t) {
-                                    mPdLoading.dismiss();
+                            mPdLoading.dismiss();
                             Log.d("erro", "onResponse: " + t.toString());
                         }
                     });
@@ -496,6 +427,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             }
         });
     }
+
     private boolean checkPermisstion() {
         boolean iPer = true;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -512,6 +444,78 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                         Constant.REQUEST_PERMISSTION_WRITE_STORAGE);
         }
         return iPer;
+    }
+
+    private void callApiwithCity(String city, String country) {
+        UserService userService = RetrofitClientWeather.getGithubServiceWeather();
+        Call<Data> callData = userService.getTask("select * from weather.forecast where woeid in (select woeid from geo.places(1) where text=\" " + city + "," + country + "\")", "json");
+        callData.enqueue(new Callback<Data>() {
+            @Override
+            public void onResponse(Call<Data> call, Response<Data> response) {
+                if (response.isSuccessful()) {
+
+                    results = response.body().getProduct().getResults();
+                    if (results != null) {
+
+                        product = response.body().getProduct().getResults().getChannel().getItem().getForecast();
+                        conditions = response.body().getProduct().getResults().getChannel().getItem().getCondition();
+                        String name = response.body().getProduct().getResults().getChannel().getLocation().getCity();
+                        mTextName.setText(name);
+                        atmosphere = response.body().getProduct().getResults().getChannel().getAtmosphere();
+                        astronomy = response.body().getProduct().getResults().getChannel().getAstronomy();
+                        wind = response.body().getProduct().getResults().getChannel().getWind();
+                        item = response.body().getProduct().getResults().getChannel().getItem();
+                        location2 = response.body().getProduct().getResults().getChannel().getLocation();
+                        boolean abc = getIntent().getBooleanExtra("check", true);
+
+                        mList.setHasFixedSize(true);
+                        adapterMylist = new AdapterMylist(conditions, atmosphere, astronomy, wind, product, getApplicationContext(), item, MainActivity.this, location2);
+                        LinearLayoutManager manager = new LinearLayoutManager(getApplicationContext());
+                        manager.setOrientation(LinearLayoutManager.VERTICAL);
+
+                        mList.setLayoutManager(manager);
+                        mList.setItemAnimator(new DefaultItemAnimator());
+                        mList.setAdapter(adapterMylist);
+                        String mTemp = conditions.getTemp();
+                        sqlHelper2 = new SQLHelper2(getApplicationContext());
+
+                        for (int i = 1; i < product.size(); i++) {
+                            String day = product.get(i).getDay();
+                            String date = product.get(i).getDate();
+                            String high = product.get(i).getHigh();
+                            String low = product.get(i).getLow();
+                            String description = product.get(i).getText();
+                            sqlHelper2.insertWeather2(day, date, description, high, low);
+                            sqlHelper2.updateWeather2(i, day, date, description, high, low);
+                        }
+
+                        sqlHelper = new SQLHelper(getApplicationContext());
+                        sqlHelper.insertWeather(name, mTemp, wind.getSpeed(), atmosphere.getHumidity(), atmosphere.getPressure());
+                        sqlHelper.updateWeather(1, name, mTemp, wind.getSpeed(), atmosphere.getHumidity(), atmosphere.getPressure());
+
+
+                        adapterMylist.notifyDataSetChanged();
+                    } else {
+                        AlertDialog dialog = new AlertDialog.Builder(MainActivity.this)
+                                .setTitle("Không tìm thấy địa chỉ !")
+                                .setNegativeButton("OK", new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialogInterface, int i) {
+                                    }
+                                })
+                                .create();
+
+                        dialog.show();
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Call<Data> call, Throwable t) {
+                Toast.makeText(MainActivity.this, "don't find location", Toast.LENGTH_SHORT).show();
+            }
+        });
+
     }
 }
 

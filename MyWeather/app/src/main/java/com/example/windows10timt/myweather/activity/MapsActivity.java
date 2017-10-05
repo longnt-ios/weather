@@ -91,10 +91,11 @@ public class MapsActivity extends AppCompatActivity implements LocationListener 
         mBack.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent intent = new Intent(getApplicationContext(), MainActivity.class);
+                Intent intent = new Intent();
                 intent.putExtra("latitude", latitude);
                 intent.putExtra("longitude", longitude);
-                startActivity(intent);
+                setResult(RESULT_CANCELED , intent);
+                finish();
             }
         });
 

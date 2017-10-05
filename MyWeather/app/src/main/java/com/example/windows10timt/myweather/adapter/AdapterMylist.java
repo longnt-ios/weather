@@ -283,12 +283,11 @@ public class AdapterMylist extends RecyclerView.Adapter<AdapterMylist.MyViewHold
             imageMap.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    Intent intent = new Intent(context , MapsActivity.class);
-                    intent.putExtra("latitude1" , item.getLat().trim());
-                    intent.putExtra("longitude1" , item.getLon().trim());
-                    intent.putExtra("city1" , location2.getCity().trim());
-                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    context.startActivity(intent);
+                    Intent intent = new Intent(context.getApplicationContext(), MapsActivity.class);
+                    intent.putExtra("latitude1", item.getLat().trim());
+                    intent.putExtra("longitude1", item.getLon().trim());
+                    intent.putExtra("city1", location2.getCity().trim());
+                    mActivity.startActivityForResult(intent, 99);
                 }
             });
         }
